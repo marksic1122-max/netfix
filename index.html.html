@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>ระบบจัดการลูกค้า PRO</title>
+<style>
+body{font-family:sans-serif;background:#0f172a;color:#fff;padding:20px}
+.card{background:#1e293b;padding:15px;border-radius:12px;margin-bottom:10px}
+input,button{padding:8px;border-radius:8px;border:none;margin:5px}
+button{cursor:pointer}
+.primary{background:#3b82f6;color:#fff}
+.line{background:#22c55e;color:#fff}
+.danger{background:#ef4444;color:#fff}
+.warn{background:#f59e0b}
+</style>
+</head>
+
+<body>
+
+<h2>🔥 ระบบลูกค้า</h2>
+
+<div class="card">
+<input id="name" placeholder="ชื่อลูกค้า">
+<input id="line" placeholder="LINE ID">
+<input id="end" type="date">
+<input id="price" placeholder="ราคา">
+<button class="primary" onclick="add()">เพิ่มลูกค้า</button>
+</div>
+
+<div class="card">
+<h3>📊 รายได้รวม: <span id="income">0</span> บาท</h3>
+</div>
+
+<div class="card">
+<h3>🔔 แจ้งเตือน</h3>
+<div id="alert"></div>
+</div>
+
+<div id="list"></div>
+
+<script>
+let DB=JSON.parse(localStorage.getItem("db")||"[]")
+
+function save(){localStorage.setItem("db",JSON.stringify(DB))}
+
+function daysLeft(d){
+return Math.ceil((new Date(d)-new Date())/86400000)
+}
+
+function add(){
+DB.push({
+id:Date.now(),
+name:name.value,
+line:line.value,
+end:end.value,
+price:+price.value
+})
+save();render()
+}
+
+function del(id){
+DB=DB.filter(x=>x.id!=id)
+save();render()
+}
+
+function renew(id){
+let c=DB.find(x=>x.id==id)
+let d=new Date(c.end)
+d.setDate(d.getDate()+30)
+c.end=d.toISOString().slice(0,10)
+save();render()
+}
+
+function lineMsg(id,name){
+let msg=encodeURIComponent(`สวัสดี ${name} ระบบของคุณใกล้หมดอายุแล้ว`)
+window.open("https://line.me/ti/p/~"+id)
+}
+
+function render(){
+let html=""
+let alertHTML=""
+let total=0
+
+DB.forEach(c=>{
+let d=daysLeft(c.end)
+let status="ปกติ"
+
+if(d<=3) status="ใกล้หมด"
+if(d<0) status="หมดแล้ว"
+
+total+=c.price||0
+
+if(d<=3){
+alertHTML+=`<div class="warn card">⚠️ ${c.name} (${d} วัน)
+<button class="line" onclick="lineMsg('${c.line}','${c.name}')">LINE</button>
+</div>`
+}
+
+html+=`
+<div class="card">
+<b>${c.name}</b> | หมด: ${c.end} | ${d} วัน (${status})
+<br>
+<button onclick="renew(${c.id})">+30 วัน</button>
+<button class="line" onclick="lineMsg('${c.line}','${c.name}')">LINE</button>
+<button class="danger" onclick="del(${c.id})">ลบ</button>
+</div>
+`
+})
+
+list.innerHTML=html
+alert.innerHTML=alertHTML||"ไม่มีแจ้งเตือน"
+income.innerText=total
+}
+
+// 🔔 แจ้งเตือนเด้ง popup
+setInterval(()=>{
+DB.forEach(c=>{
+let d=daysLeft(c.end)
+if(d==0){
+alert("ลูกค้า "+c.name+" หมดอายุวันนี้!")
+}
+})
+},60000)
+
+render()
+</script>
+
+</body>
+</html>
