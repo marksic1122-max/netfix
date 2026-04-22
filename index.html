@@ -210,7 +210,7 @@ function render(){
   customers.sort((a,b)=>daysLeft(a.end)-daysLeft(b.end));
 
   let html="",alertHtml="";
-  let total=customers.length,soon=0,late=0,income=0;
+  let total=customers.length,soon=0,late=0,income=0,incomeCount=0;
 
   customers.forEach(c=>{
     let d=daysLeft(c.end);
@@ -218,7 +218,8 @@ function render(){
     if(d<=3 && d>=0){soon++;alertHtml+=`<div class="alert">⚠️ ${c.name} ใกล้หมด</div>`}
     if(d<0){late++;alertHtml+=`<div class="alert">❌ ${c.name} หมดอายุ</div>`}
 
-    income+=c.price;
+    income += c.price;
+incomeCount++;
 
     html+=`
     <tr>
@@ -239,7 +240,7 @@ function render(){
   document.getElementById("total").innerText=total;
   document.getElementById("soon").innerText=soon;
   document.getElementById("late").innerText=late;
-  document.getElementById("income").innerText=income;
+  document.getElementById("incomeCount").innerText = incomeCount + " รายการ";
 
   if(late>0) alert("มีลูกค้าหมดอายุ "+late+" คน");
 }
