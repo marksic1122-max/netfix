@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM + Google Sheets + Login</title>
+<style>
+body{font-family:Arial;background:#0f172a;color:white;text-align:center;padding:40px}
+input,button{padding:10px;margin:5px;border-radius:8px;border:none}
+button{cursor:pointer}
+#app{display:none}
+table{width:100%;margin-top:20px}
+</style>
+</head>
+<body>
+
+<h2>ระบบหลังบ้าน (มี Login + Google Sheets)</h2>
+
+<div id="login">
+<input id="user" placeholder="Username">
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()">เข้าสู่ระบบ</button>
+</div>
+
+<div id="app">
+<h3>เพิ่มลูกค้า</h3>
+<input id="name" placeholder="ชื่อ">
+<input id="line" placeholder="LINE">
+<input id="end" type="date">
+<button onclick="add()">เพิ่ม</button>
+
+<table>
+<thead>
+<tr><th>ชื่อ</th><th>LINE</th><th>หมดอายุ</th></tr>
+</thead>
+<tbody id="list"></tbody>
+</table>
+</div>
+
+<script>
+// 🔐 LOGIN (ตั้งเองได้)
+const USERNAME = "admin";
+const PASSWORD = "1234";
+
+function login(){
+  if(user.value===USERNAME && pass.value===PASSWORD){
+    document.getElementById('login').style.display='none';
+    document.getElementById('app').style.display='block';
+    load();
+  }else{
+    alert('รหัสผิด');
+  }
+}
+
+// 🔗 Google Sheets API (Apps Script URL)
+const API_URL = "ใส่ลิงก์ Apps Script ตรงนี้";
+
+async function add(){
+  let data={
+    name:name.value,
+    line:line.value,
+    end:end.value
+  };
+
+  await fetch(API_URL,{
+    method:"POST",
+    body:JSON.stringify(data)
+  });
+
+  alert('เพิ่มแล้ว');
+  load();
+}
+
+async function load(){
+  let res=await fetch(API_URL);
+  let data=await res.json();
+
+  let html='';
+  data.forEach(x=>{
+    html+=`<tr><td>${x.name}</td><td>${x.line}</td><td>${x.end}</td></tr>`;
+  });
+
+  document.getElementById('list').innerHTML=html;
+}
+</script>
+
+</body>
+</html>
+
+<!-- 📌 วิธีทำ Google Sheets เชื่อม -->
+<!--
+1. ไปที่ Google Sheets
+2. Extensions > Apps Script
+3. วางโค้ดนี้
+
+function doGet(){
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const data = sheet.getDataRange().getValues();
+  const result = data.slice(1).map(r => ({
+    name:r[0], line:r[1], end:r[2]
+  }));
+  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e){
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const body = JSON.parse(e.postData.contents);
+  sheet.appendRow([body.name, body.line, body.end]);
+  return ContentService.createTextOutput("ok");
+}
+
+4. Deploy > Web App
+5. ตั้งเป็น Anyone
+6. เอา URL มาใส่ใน API_URL
+-->
