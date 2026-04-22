@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM SaaS PRO</title>
+
+<style>
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:linear-gradient(180deg,#020617,#0f172a);
+  color:white;
+}
+.layout{display:flex;height:100vh}
+
+/* SIDEBAR */
+.sidebar{
+  width:240px;
+  background:#020617;
+  padding:20px;
+}
+.logo{font-size:18px;margin-bottom:20px;font-weight:bold}
+.menu div{
+  padding:12px;border-radius:10px;margin:5px 0;cursor:pointer
+}
+.menu div:hover,.active{background:#1e293b}
+
+/* MAIN */
+.main{flex:1;padding:20px;overflow:auto}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.card{
+  background:#111827;
+  padding:15px;
+  border-radius:12px;
+}
+.card h4{margin:0;color:#94a3b8}
+.card p{font-size:24px;margin:5px 0}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;margin-top:10px}
+td,th{padding:10px;border-bottom:1px solid #333}
+
+/* BTN */
+button{padding:6px 10px;border:none;border-radius:8px;cursor:pointer}
+.line{background:#22c55e;color:#fff}
+.danger{background:#ef4444;color:#fff}
+.primary{background:#3b82f6;color:#fff}
+
+/* INPUT */
+input,select{
+  padding:10px;border-radius:8px;border:none;width:100%;
+  background:#1e293b;color:white;margin:5px 0;
+}
+
+/* ALERT */
+.alert{padding:10px;border-radius:10px;margin:5px 0}
+.red{background:#7f1d1d}
+.yellow{background:#78350f}
+
+</style>
+</head>
+
+<body>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">🔥 CRM PRO</div>
+  <div class="menu">
+    <div class="active" onclick="tab('dash',this)">Dashboard</div>
+    <div onclick="tab('customer',this)">ลูกค้า</div>
+    <div onclick="tab('alert',this)">แจ้งเตือน</div>
+    <div onclick="tab('income',this)">รายได้</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- DASH -->
+<div id="dash">
+<div class="stats">
+  <div class="card"><h4>ทั้งหมด</h4><p id="total"></p></div>
+  <div class="card"><h4>ใช้งาน</h4><p id="active"></p></div>
+  <div class="card"><h4>ใกล้หมด</h4><p id="soon"></p></div>
+  <div class="card"><h4>หมดแล้ว</h4><p id="late"></p></div>
+</div>
+
+<div id="alertTop"></div>
+</div>
+
+<!-- CUSTOMER -->
+<div id="customer" style="display:none">
+
+<div class="card">
+<h3>เพิ่มลูกค้า</h3>
+<input id="name" placeholder="ชื่อ">
+<input id="line" placeholder="LINE">
+<input id="end" type="date">
+<input id="price" type="number" placeholder="ราคา">
+<button class="primary" onclick="add()">เพิ่ม</button>
+</div>
+
+<div class="card">
+<input id="search" placeholder="ค้นหา..." oninput="render()">
+<select id="filter" onchange="render()">
+<option value="all">ทั้งหมด</option>
+<option value="soon">ใกล้หมด</option>
+<option value="late">หมดแล้ว</option>
+</select>
+
+<table id="table"></table>
+</div>
+
+</div>
+
+<!-- ALERT -->
+<div id="alert" style="display:none">
+<div class="card">
+<h3>ลูกค้าที่ต้องตาม</h3>
+<div id="alertList"></div>
+</div>
+</div>
+
+<!-- INCOME -->
+<div id="income" style="display:none">
+<div class="card">
+<h3>รายได้รวม</h3>
+<p id="money"></p>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+let DB=JSON.parse(localStorage.getItem('db')||'[]')
+
+function save(){localStorage.setItem('db',JSON.stringify(DB))}
+
+function tab(id,el){
+document.querySelectorAll('.menu div').forEach(x=>x.classList.remove('active'))
+el.classList.add('active')
+document.querySelectorAll('#dash,#customer,#alert,#income').forEach(x=>x.style.display='none')
+document.getElementById(id).style.display='block'
+}
+
+function daysLeft(d){
+return Math.ceil((new Date(d)-new Date())/86400000)
+}
+
+function status(d){
+let x=daysLeft(d)
+if(x<0) return 'late'
+if(x<=3) return 'soon'
+return 'ok'
+}
+
+function add(){
+DB.push({
+id:Date.now(),
+name:name.value,
+line:line.value,
+end:end.value,
+price:+price.value
+})
+save();render()
+}
+
+function renew(id){
+let c=DB.find(x=>x.id==id)
+let d=new Date(c.end)
+d.setDate(d.getDate()+30)
+c.end=d.toISOString().slice(0,10)
+save();render()
+}
+
+function del(id){
+DB=DB.filter(x=>x.id!=id)
+save();render()
+}
+
+function lineMsg(id,name){
+let msg=encodeURIComponent(`สวัสดี ${name} ระบบของคุณกำลังจะหมดอายุ`)
+window.open(`https://line.me/ti/p/~${id}`)
+}
+
+function render(){
+let html='<tr><th>ชื่อ</th><th>หมด</th><th>วัน</th><th></th></tr>'
+let totalIncome=0
+let a=0,s=0,l=0
+let alertHTML=''
+
+let keyword=search?.value?.toLowerCase()||''
+let f=filter?.value||'all'
+
+DB.forEach(c=>{
+let d=daysLeft(c.end)
+let st=status(c.end)
+
+if(keyword && !c.name.toLowerCase().includes(keyword)) return
+if(f!='all' && st!=f) return
+
+totalIncome+=c.price||0
+if(st=='ok') a++
+if(st=='soon') s++
+if(st=='late') l++
+
+if(st!='ok'){
+alertHTML+=`<div class="alert ${st=='late'?'red':'yellow'}">
+⚠️ ${c.name} (${d} วัน)
+<button class="line" onclick="lineMsg('${c.line}','${c.name}')">LINE</button>
+</div>`
+}
+
+html+=`
+<tr>
+<td>${c.name}</td>
+<td>${c.end}</td>
+<td>${d}</td>
+<td>
+<button onclick="renew(${c.id})">+30</button>
+<button class="line" onclick="lineMsg('${c.line}','${c.name}')">LINE</button>
+<button class="danger" onclick="del(${c.id})">ลบ</button>
+</td>
+</tr>`
+})
+
+table.innerHTML=html
+money.innerText="฿ "+totalIncome
+total.innerText=DB.length
+active.innerText=a
+soon.innerText=s
+late.innerText=l
+
+alertTop.innerHTML=alertHTML||'ไม่มี'
+alertList.innerHTML=alertHTML||'ไม่มี'
+}
+
+if(DB.length==0){
+DB=[
+{id:1,name:'สมชาย',line:'somchai01',end:'2026-04-25',price:120},
+{id:2,name:'วิภา',line:'vipaa',end:'2026-04-20',price:120}
+]
+save()
+}
+
+render()
+</script>
+
+</body>
+</html>
