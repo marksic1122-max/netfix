@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer PRO</title>
+
+<style>
+*{box-sizing:border-box;font-family:sans-serif}
+body{margin:0;background:#0f172a;color:#fff;display:flex}
+
+/* SIDEBAR */
+.sidebar{
+  width:240px;
+  background:rgba(255,255,255,0.05);
+  height:100vh;
+  padding:20px;
+  border-right:1px solid rgba(255,255,255,0.1)
+}
+.sidebar h2{font-size:18px;margin-bottom:20px}
+.menu button{
+  width:100%;
+  padding:12px;
+  margin-bottom:10px;
+  border:none;
+  border-radius:10px;
+  background:rgba(255,255,255,0.08);
+  color:#fff;
+  cursor:pointer
+}
+.menu button:hover{background:#2563eb}
+
+/* MAIN */
+.main{flex:1;padding:20px}
+
+/* GLASS CARD */
+.card{
+  background:rgba(255,255,255,0.06);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.1);
+  padding:15px;
+  border-radius:16px;
+  margin-bottom:15px
+}
+
+/* FORM */
+.form input{
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  border-radius:10px;
+  border:none;
+  background:rgba(255,255,255,0.1);
+  color:#fff
+}
+
+button{cursor:pointer}
+.primary{background:#2563eb;color:#fff;padding:10px;border-radius:10px;border:none}
+.danger{background:#ef4444;color:#fff;padding:10px;border:none;border-radius:10px}
+.line{background:#22c55e;color:#000;padding:10px;border:none;border-radius:10px}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.1)}
+
+/* ALERT */
+.alert{background:#ef4444;padding:10px;border-radius:10px;margin-bottom:10px}
+
+.stat{
+  display:flex;
+  gap:15px;
+}
+.box{
+  flex:1;
+  background:rgba(255,255,255,0.05);
+  padding:15px;
+  border-radius:12px;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h2>🚀 ระบบ PRO</h2>
+  <div class="menu">
+    <button onclick="showPage('dashboard')">Dashboard</button>
+    <button onclick="showPage('add')">เพิ่มลูกค้า</button>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+
+<div class="stat">
+  <div class="box">ลูกค้า <br><b id="total">0</b></div>
+  <div class="box">ใกล้หมด <br><b id="soon">0</b></div>
+  <div class="box">หมดแล้ว <br><b id="late">0</b></div>
+  <div class="box">รายได้ <br><b id="income">0</b></div>
+</div>
+
+<div id="alertBox"></div>
+
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>ชื่อ</th>
+<th>หมดอายุ</th>
+<th>เหลือ</th>
+<th>จัดการ</th>
+</tr>
+</thead>
+<tbody id="list"></tbody>
+</table>
+</div>
+
+</div>
+
+<!-- ADD PAGE -->
+<div id="add" style="display:none">
+
+<div class="card form">
+<h3>เพิ่มลูกค้า</h3>
+
+<input id="name" placeholder="ชื่อลูกค้า">
+<input id="lineId" placeholder="LINE ID">
+<input id="days" type="number" placeholder="จำนวนวัน">
+
+<button class="primary" onclick="addCustomer()">บันทึก</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let customers = JSON.parse(localStorage.getItem("data")) || [];
+
+function save(){
+  localStorage.setItem("data",JSON.stringify(customers));
+}
+
+function showPage(p){
+  document.getElementById("dashboard").style.display="none";
+  document.getElementById("add").style.display="none";
+  document.getElementById(p).style.display="block";
+}
+
+/* ADD */
+function addCustomer(){
+  let name=nameInput("name");
+  let line=nameInput("lineId");
+  let days=parseInt(nameInput("days"));
+
+  if(!name||!days)return alert("กรอกข้อมูล");
+
+  let d=new Date();
+  d.setDate(d.getDate()+days);
+
+  customers.push({
+    id:Date.now(),
+    name,line,
+    end:d.toISOString(),
+    price:120
+  });
+
+  save();
+  render();
+  showPage('dashboard');
+}
+
+/* UTIL */
+function nameInput(id){return document.getElementById(id).value}
+
+function daysLeft(date){
+  return Math.ceil((new Date(date)-new Date())/86400000);
+}
+
+/* ACTION */
+function del(id){
+  customers=customers.filter(c=>c.id!==id);
+  save();render();
+}
+
+function extend(id){
+  let c=customers.find(x=>x.id===id);
+  let d=new Date(c.end);
+  d.setDate(d.getDate()+30);
+  c.end=d;
+  save();render();
+}
+
+function lineChat(id){
+  let c=customers.find(x=>x.id===id);
+  window.open(`https://line.me/R/ti/p/~${c.line}`);
+}
+
+/* RENDER */
+function render(){
+
+  customers.sort((a,b)=>daysLeft(a.end)-daysLeft(b.end));
+
+  let html="",alertHtml="";
+  let total=customers.length,soon=0,late=0,income=0;
+
+  customers.forEach(c=>{
+    let d=daysLeft(c.end);
+
+    if(d<=3 && d>=0){soon++;alertHtml+=`<div class="alert">⚠️ ${c.name} ใกล้หมด</div>`}
+    if(d<0){late++;alertHtml+=`<div class="alert">❌ ${c.name} หมดอายุ</div>`}
+
+    income+=c.price;
+
+    html+=`
+    <tr>
+      <td>${c.name}</td>
+      <td>${new Date(c.end).toLocaleDateString()}</td>
+      <td>${d} วัน</td>
+      <td>
+        <button class="line" onclick="lineChat(${c.id})">LINE</button>
+        <button onclick="extend(${c.id})">+30</button>
+        <button class="danger" onclick="del(${c.id})">ลบ</button>
+      </td>
+    </tr>`;
+  });
+
+  document.getElementById("list").innerHTML=html;
+  document.getElementById("alertBox").innerHTML=alertHtml;
+
+  document.getElementById("total").innerText=total;
+  document.getElementById("soon").innerText=soon;
+  document.getElementById("late").innerText=late;
+  document.getElementById("income").innerText=income;
+
+  if(late>0) alert("มีลูกค้าหมดอายุ "+late+" คน");
+}
+
+render();
+
+</script>
+
+</body>
+</html>
