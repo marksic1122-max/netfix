@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamManage V4.0 - Finance Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .modal-active { overflow: hidden; }
+    </style>
+</head>
+<body class="bg-[#0b1120] text-slate-100 font-sans antialiased overflow-hidden">
+
+    <div class="flex h-screen">
+        <aside class="w-64 bg-[#0f172a] border-r border-slate-800 p-6 flex flex-col shadow-2xl z-20">
+            <div class="text-2xl font-black mb-10 text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-emerald-500 flex items-center">
+                <i class="fa-solid fa-chart-line mr-3 text-emerald-500"></i>StreamV4
+            </div>
+            
+            <nav class="space-y-2 flex-1">
+                <button onclick="switchTab('Netflix')" id="tab-Netflix" class="tab-btn w-full flex items-center p-3 rounded-xl bg-blue-600 text-white font-semibold transition">
+                    <i class="fa-solid fa-tv w-6 text-sm"></i> Netflix
+                </button>
+                <button onclick="switchTab('YouTube')" id="tab-YouTube" class="tab-btn w-full flex items-center p-3 rounded-xl hover:bg-slate-800 text-slate-400 transition">
+                    <i class="fa-brands fa-youtube w-6 text-sm"></i> YouTube
+                </button>
+                <button onclick="switchTab('Disney')" id="tab-Disney" class="tab-btn w-full flex items-center p-3 rounded-xl hover:bg-slate-800 text-slate-400 transition">
+                    <i class="fa-solid fa-film w-6 text-sm"></i> Disney+
+                </button>
+                
+                <div class="my-6 border-t border-slate-800"></div>
+
+                <button onclick="switchTab('Trash')" id="tab-Trash" class="tab-btn w-full flex items-center p-3 rounded-xl hover:bg-red-900/20 text-red-400/70 transition">
+                    <i class="fa-solid fa-trash-can w-6 text-sm"></i> ถังขยะ
+                </button>
+            </nav>
+        </aside>
+
+        <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+            
+            <header class="p-8 pb-6 bg-[#0b1120]/80 backdrop-blur-md z-10 border-b border-slate-800/50">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div>
+                        <h1 id="currentServiceTitle" class="text-3xl font-bold text-white tracking-tight">Netflix</h1>
+                        <p id="subTitle" class="text-slate-500 text-sm mt-1">จัดการรายได้และคำนวณกำไรแบบเรียลไทม์</p>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <div class="relative group">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition"></i>
+                            <input type="text" id="searchInput" placeholder="ค้นหาชื่อหรืออีเมล..." oninput="filterData()" class="bg-slate-900 border border-slate-800 focus:border-emerald-500/50 rounded-xl py-2.5 pl-10 pr-4 outline-none w-64 text-sm transition text-white">
+                        </div>
+                        <button id="addBtn" onclick="openModal()" class="bg-emerald-600 hover:bg-emerald-500 px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-emerald-600/20 transition flex items-center">
+                            <i class="fa-solid fa-plus mr-2"></i> เพิ่มลูกค้าใหม่
+                        </button>
+                    </div>
+                </div>
+
+                <div id="statsContainer" class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
+                    <div class="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl">
+                        <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">ยอดขายรวม</p>
+                        <h3 id="statRevenue" class="text-2xl font-bold text-white mt-1">฿0</h3>
+                    </div>
+                    <div class="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl">
+                        <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">ต้นทุนรวม</p>
+                        <h3 id="statCost" class="text-2xl font-bold text-red-400 mt-1">฿0</h3>
+                    </div>
+                    <div class="bg-slate-900/50 border border-emerald-900/30 p-4 rounded-2xl bg-emerald-900/5">
+                        <p class="text-emerald-500 text-[10px] font-bold uppercase tracking-widest">กำไรสุทธิ</p>
+                        <h3 id="statProfit" class="text-2xl font-bold text-emerald-400 mt-1">฿0</h3>
+                    </div>
+                    <div class="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl">
+                        <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">ค้างชำระ (คน)</p>
+                        <h3 id="statUnpaid" class="text-2xl font-bold text-orange-400 mt-1">0</h3>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto px-8 py-4">
+                <div class="bg-slate-900/30 rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-800/40 text-slate-400 text-[10px] uppercase tracking-widest border-b border-slate-800">
+                            <tr>
+                                <th class="p-5 font-bold">ลูกค้า / สถานะเงิน</th>
+                                <th class="p-5 font-bold">บัญชี / คัดลอก</th>
+                                <th class="p-5 font-bold">จอ / PIN</th>
+                                <th class="p-5 font-bold">ราคา / กำไร</th>
+                                <th class="p-5 font-bold">หมดอายุ</th>
+                                <th class="p-5 font-bold text-right">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody" class="divide-y divide-slate-800/50">
+                            <tr><td colspan="6" class="p-20 text-center text-slate-600 italic">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-[#161f32] border border-slate-700 w-full max-w-2xl rounded-3xl p-8 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="modalTitle" class="text-2xl font-bold text-white">บันทึกข้อมูล</h2>
+                <button onclick="closeModal()" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <form id="recordForm" class="space-y-5">
+                <input type="hidden" id="editDocId">
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wider">ชื่อลูกค้า</label>
+                        <input type="text" id="customerName" required class="w-full bg-slate-900/50 border border-slate-800 focus:border-emerald-500 rounded-xl p-3 outline-none transition text-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wider">อีเมลล็อกอิน</label>
+                        <input type="email" id="accountEmail" required class="w-full bg-slate-900/50 border border-slate-800 focus:border-emerald-500 rounded-xl p-3 outline-none transition text-white">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wider">รหัสผ่าน</label>
+                        <input type="text" id="password" required class="w-full bg-slate-900/50 border border-slate-800 focus:border-emerald-500 rounded-xl p-3 outline-none transition text-white text-sm">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wider">ชื่อจอ</label>
+                        <input type="text" id="profileName" class="w-full bg-slate-900/50 border border-slate-800 rounded-xl p-3 outline-none text-white text-sm">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wider">PIN</label>
+                        <input type="text" id="pin" class="w-full bg-slate-900/50 border border-slate-800 rounded-xl p-3 outline-none text-white text-sm">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 p-5 bg-slate-900/80 rounded-2xl border border-slate-800/50">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1 tracking-wider">ต้นทุน (บาท)</label>
+                        <input type="number" id="cost" required placeholder="0" class="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl p-2.5 outline-none text-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1 tracking-wider">ราคาขาย (บาท)</label>
+                        <input type="number" id="price" required placeholder="0" class="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl p-2.5 outline-none text-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1 tracking-wider">สถานะเงิน</label>
+                        <select id="paymentStatus" class="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-xl p-2.5 outline-none text-white text-sm">
+                            <option value="paid">จ่ายแล้ว ✅</option>
+                            <option value="unpaid">ค้างชำระ ❌</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wider">วันหมดอายุ</label>
+                    <input type="date" id="expireDate" required class="w-full bg-slate-900/50 border border-slate-800 focus:border-emerald-500 rounded-xl p-3 outline-none text-white transition invert-[0.9]">
+                </div>
+
+                <div class="flex gap-4 pt-2">
+                    <button type="button" onclick="closeModal()" class="flex-1 py-3.5 text-slate-400 font-bold hover:bg-slate-800 rounded-2xl transition">ยกเลิก</button>
+                    <button type="submit" id="submitBtn" class="flex-[2] py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl shadow-lg transition">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // 🛑 นำ Firebase Config ของคุณมาวางทับส่วนนี้ 🛑
+        const firebaseConfig = {
+            apiKey: "ใส่_API_KEY_ของคุณ",
+            authDomain: "ใส่_PROJECT_ID.firebaseapp.com",
+            projectId: "ใส่_PROJECT_ID",
+            storageBucket: "ใส่_PROJECT_ID.appspot.com",
+            messagingSenderId: "ใส่_SENDER_ID",
+            appId: "ใส่_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.currentService = 'Netflix';
+        let unsubscribe = null;
+        let allData = [];
+
+        window.switchTab = (service) => {
+            window.currentService = service;
+            document.getElementById('currentServiceTitle').innerText = service;
+            document.getElementById('statsContainer').style.display = service === 'Trash' ? 'none' : 'grid';
+            document.getElementById('addBtn').style.display = service === 'Trash' ? 'none' : 'flex';
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn w-full flex items-center p-3 rounded-xl hover:bg-slate-800 text-slate-400 transition";
+            });
+            const activeBtn = document.getElementById(`tab-${service}`);
+            activeBtn.className = service === 'Trash' ? 
+                "tab-btn w-full flex items-center p-3 rounded-xl bg-red-900/20 text-red-400 font-semibold" : 
+                "tab-btn w-full flex items-center p-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-600/20";
+
+            loadData();
+        };
+
+        const loadData = () => {
+            if (unsubscribe) unsubscribe();
+            const q = window.currentService === 'Trash' ? 
+                query(collection(db, "sales_records"), where("status", "==", "deleted")) :
+                query(collection(db, "sales_records"), where("service", "==", window.currentService), where("status", "==", "active"));
+
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                allData = [];
+                snapshot.forEach(d => allData.push({id: d.id, ...d.data()}));
+                renderTable(allData);
+                if(window.currentService !== 'Trash') updateStats();
+            });
+        };
+
+        const renderTable = (data) => {
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = data.length ? '' : `<tr><td colspan="6" class="p-20 text-center text-slate-600 italic">ไม่พบข้อมูลลูกค้า</td></tr>`;
+            
+            data.forEach(item => {
+                const diffDays = Math.ceil((new Date(item.expireDate) - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+                const profit = (item.price || 0) - (item.cost || 0);
+                const paymentBadge = item.paymentStatus === 'paid' ? 
+                    '<span class="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">จ่ายแล้ว</span>' : 
+                    '<span class="text-[9px] bg-orange-500/10 text-orange-400 px-1.5 py-0.5 rounded border border-orange-500/20 font-bold animate-pulse">ค้างชำระ</span>';
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/30 transition group";
+                tr.innerHTML = `
+                    <td class="p-5 align-top">
+                        <div class="font-bold text-slate-200 text-sm">${item.customerName}</div>
+                        <div class="mt-1">${paymentBadge}</div>
+                    </td>
+                    <td class="p-5 align-top">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-blue-400 font-mono">${item.accountEmail}</span>
+                            <button onclick="copyInfo('${item.accountEmail}', '${item.password}', '${item.profileName}', '${item.pin}')" class="text-slate-600 hover:text-white transition"><i class="fa-regular fa-copy text-xs"></i></button>
+                        </div>
+                        <div class="text-[10px] text-slate-500 mt-1 font-mono italic">PW: ${item.password}</div>
+                    </td>
+                    <td class="p-5 align-top text-xs text-slate-300">
+                        <div>${item.profileName || '-'}</div>
+                        <div class="text-[10px] text-slate-500 mt-1 font-mono">PIN: ${item.pin || '-'}</div>
+                    </td>
+                    <td class="p-5 align-top">
+                        <div class="text-xs font-bold text-white">฿${item.price || 0}</div>
+                        <div class="text-[10px] text-emerald-500 mt-1">กำไร: ฿${profit}</div>
+                    </td>
+                    <td class="p-5 align-top">
+                        <div class="text-xs text-slate-400">${item.expireDate}</div>
+                        <div class="text-[10px] ${diffDays <= 3 ? 'text-red-400 font-bold' : 'text-slate-600'} mt-1">เหลือ ${diffDays} วัน</div>
+                    </td>
+                    <td class="p-5 align-top text-right">
+                        <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition">
+                            <button onclick="openModal('${item.id}')" class="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg text-xs transition"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="moveToTrash('${item.id}')" class="text-slate-500 hover:text-red-500 p-2 rounded-lg text-xs transition"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+
+        const updateStats = () => {
+            const activeItems = allData.filter(i => i.status === 'active');
+            const totalRevenue = activeItems.reduce((sum, i) => sum + (Number(i.price) || 0), 0);
+            const totalCost = activeItems.reduce((sum, i) => sum + (Number(i.cost) || 0), 0);
+            const unpaidCount = activeItems.filter(i => i.paymentStatus === 'unpaid').length;
+
+            document.getElementById('statRevenue').innerText = `฿${totalRevenue.toLocaleString()}`;
+            document.getElementById('statCost').innerText = `฿${totalCost.toLocaleString()}`;
+            document.getElementById('statProfit').innerText = `฿${(totalRevenue - totalCost).toLocaleString()}`;
+            document.getElementById('statUnpaid').innerText = unpaidCount;
+        };
+
+        window.openModal = (docId = null) => {
+            const modal = document.getElementById('modal');
+            document.getElementById('recordForm').reset();
+            document.getElementById('editDocId').value = docId;
+            document.getElementById('modalTitle').innerText = docId ? 'แก้ไขข้อมูลลูกค้า' : 'เพิ่มลูกค้าใหม่';
+
+            if (docId) {
+                const d = allData.find(i => i.id === docId);
+                document.getElementById('customerName').value = d.customerName;
+                document.getElementById('accountEmail').value = d.accountEmail;
+                document.getElementById('password').value = d.password;
+                document.getElementById('profileName').value = d.profileName;
+                document.getElementById('pin').value = d.pin;
+                document.getElementById('expireDate').value = d.expireDate;
+                document.getElementById('price').value = d.price || 0;
+                document.getElementById('cost').value = d.cost || 0;
+                document.getElementById('paymentStatus').value = d.paymentStatus || 'paid';
+            }
+            modal.classList.remove('hidden');
+            document.body.classList.add('modal-active');
+        };
+
+        window.closeModal = () => {
+            document.getElementById('modal').classList.add('hidden');
+            document.body.classList.remove('modal-active');
+        };
+
+        document.getElementById('recordForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const docId = document.getElementById('editDocId').value;
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+
+            const payload = {
+                service: window.currentService,
+                customerName: document.getElementById('customerName').value,
+                accountEmail: document.getElementById('accountEmail').value,
+                password: document.getElementById('password').value,
+                profileName: document.getElementById('profileName').value,
+                pin: document.getElementById('pin').value,
+                expireDate: document.getElementById('expireDate').value,
+                price: Number(document.getElementById('price').value),
+                cost: Number(document.getElementById('cost').value),
+                paymentStatus: document.getElementById('paymentStatus').value,
+                status: 'active',
+                updatedAt: new Date().toISOString()
+            };
+
+            try {
+                if (docId) {
+                    await updateDoc(doc(db, "sales_records", docId), payload);
+                } else {
+                    await addDoc(collection(db, "sales_records"), { ...payload, createdAt: new Date().toISOString() });
+                }
+                closeModal();
+            } catch (err) { alert('Error: ' + err.message); }
+            finally { btn.disabled = false; }
+        };
+
+        window.copyInfo = (email, pass, profile, pin) => {
+            const text = `📦 ข้อมูลบัญชี ${window.currentService}\nอีเมล: ${email}\nรหัส: ${pass}\nจอ: ${profile || '-'}\nPIN: ${pin || '-'}`;
+            navigator.clipboard.writeText(text).then(() => alert('คัดลอกแล้ว!'));
+        };
+
+        window.filterData = () => {
+            const kw = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allData.filter(i => i.customerName.toLowerCase().includes(kw) || i.accountEmail.toLowerCase().includes(kw));
+            renderTable(filtered);
+        };
+
+        window.moveToTrash = async (id) => { if(confirm('ย้ายไปถังขยะ?')) await updateDoc(doc(db, "sales_records", id), { status: 'deleted' }); };
+        window.onclick = (e) => { if(e.target == document.getElementById('modal')) closeModal(); };
+        window.onkeydown = (e) => { if(e.key == 'Escape') closeModal(); };
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>
